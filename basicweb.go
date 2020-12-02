@@ -8,11 +8,12 @@ import (
     "strconv"
 )
 var (
-  port     = flag.String( "port"   ,  "80" ,  "port web server"                                       )
-  dir      = flag.String( "dir"    ,  "."  ,  "root directory"                                        )
-  status   = flag.Int   ( "status" ,  0    ,  "force return code"                                     )
-  username = flag.String( "user"   ,  ""   ,  "username for basic authentication (modification only)" )
-  password = flag.String( "pass"   ,  ""   ,  "password for basic authentication (modification only)" )
+  port     = flag.String( "port"     ,  "80"   ,  "port web server"                                       )
+  dir      = flag.String( "dir"      ,  "."    ,  "root directory"                                        )
+  status   = flag.Int   ( "status"   ,  0      ,  "force return code"                                     )
+  username = flag.String( "user"     ,  ""     ,  "username for basic authentication (modification only)" )
+  password = flag.String( "pass"     ,  ""     ,  "password for basic authentication (modification only)" )
+  nocache  = flag.Bool  ( "nocache"  ,  false  ,  "force not to cache" )
 )
 func basicAuth(w http.ResponseWriter, r *http.Request) bool {
   if( *username!="" && *password!="" ) {
@@ -41,6 +42,7 @@ func returnCode(w http.ResponseWriter,code int) {
 }
 func fileHandler(w http.ResponseWriter, r *http.Request) {
   log.Println( r.Method, r.URL.Path )
+  if( *nocache ) { w.Header().Set("Cache-Control","no-cache, no-store, must-revalidate"); w.Header().Set("Expires","0"); }
   if( (r.Method!="GET")&&(r.Method!="HEAD")&&(r.Method!="OPTIONS") ) { if !basicAuth(w,r) { return } }
   enableCors(&w,r)
   if( *status!=0 ) { // We force return code
