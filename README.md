@@ -10,9 +10,10 @@ Here are the specifications:
 - very light cache management
 - light [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) management
 - light virtual host management
-- upload file with **POST** or **PUT** HTTP verb
-- remove file with **DELETE** HTTP verb
-- protect modifications with basic authentication
+- upload files with **POST** or **PUT** HTTP verb
+- remove files with **DELETE** HTTP verb
+- protect against modifications with basic authentication
+- force status code responses
 - easy configuration with command-line parameters
 
 ## How to get it
@@ -51,7 +52,7 @@ done
 
 ```bash
 $ ./basicweb -h
-Usage of C:\Users\cyril\scoop\home\src\basicweb\basicweb.exe:
+Usage of basicweb:
   -dir string
         root directory (default ".")
   -nocache
@@ -64,4 +65,12 @@ Usage of C:\Users\cyril\scoop\home\src\basicweb\basicweb.exe:
         force return code
   -user string
         username for basic authentication (modification only)
+```
+
+## Lightest start command
+
+```
+$ ./basicweb
+2020/12/03 18:04:59 Starting web server with port 80 on directory . with status response 0
+2020/12/03 18:05:12 GET /
 ```
