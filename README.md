@@ -69,7 +69,7 @@ Usage of basicweb:
 
 ## Lightest start command
 
-```
+```bash
 $ ./basicweb
 2020/12/03 18:04:59 Starting web server with port 80 on directory . with status response 0
 2020/12/03 18:05:12 GET /
