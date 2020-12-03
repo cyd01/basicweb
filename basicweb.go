@@ -41,6 +41,12 @@ func returnCode(w http.ResponseWriter,code int) {
   w.Write([]byte(http.StatusText(code)))
 }
 func fileHandler(w http.ResponseWriter, r *http.Request) {
+  var fullpath string
+  if stat, err := os.Stat(*dir+"/"+r.Host); err == nil && stat.IsDir() {
+    fullpath = *dir+"/"+r.Host
+  } else {
+    fullpath = *dir
+  }
   log.Println( r.Method, r.URL.Path )
   if( *nocache ) { w.Header().Set("Cache-Control","no-cache, no-store, must-revalidate"); w.Header().Set("Expires","0"); }
   if( (r.Method!="GET")&&(r.Method!="HEAD")&&(r.Method!="OPTIONS") ) { if !basicAuth(w,r) { return } }
@@ -55,18 +61,17 @@ func fileHandler(w http.ResponseWriter, r *http.Request) {
     if( r.Method == "OPTIONS" ) {
       return
     } else if( (r.Method == "PUT") || (r.Method == "POST") ) { // Upload fle
-      dst, err := os.Create(*dir+r.URL.Path)
+      dst, err := os.Create(fullpath+r.URL.Path)
       if err != nil { http.Error(w, err.Error(), http.StatusInternalServerError); return }
       defer dst.Close()
       defer r.Body.Close() 
       if _, err := io.Copy(dst, r.Body); err != nil { http.Error(w, err.Error(), http.StatusInternalServerError); return }
       returnCode(w,http.StatusCreated)
     } else if( r.Method == "DELETE" ) { // Delete file
-      if err:= os.Remove(*dir+r.URL.Path); err != nil { http.Error(w, err.Error(), http.StatusInternalServerError); return }
+      if err:= os.Remove(fullpath+r.URL.Path); err != nil { http.Error(w, err.Error(), http.StatusInternalServerError); return }
       returnCode(w,http.StatusNoContent)
     } else if( (r.Method == "GET") || (r.Method == "HEAD") ) { // Download file or file info
-      fileServer := http.FileServer(http.Dir(*dir))
-      fileServer.ServeHTTP(w, r)
+      http.FileServer(http.Dir(fullpath)).ServeHTTP(w, r)
     } else { // Unknown method
       returnCode(w,http.StatusMethodNotAllowed)
     }

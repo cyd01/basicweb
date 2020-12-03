@@ -7,8 +7,9 @@ Here are the specifications:
 
 - no external dependencies
 - less than 100 lines of code
-- light cache management
+- very light cache management
 - light [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) management
+- light virtual host management
 - upload file with **POST** or **PUT** HTTP verb
 - remove file with **DELETE** HTTP verb
 - protect modifications with basic authentication
@@ -20,7 +21,7 @@ Here are the specifications:
 git clone https://github.com/cyd01/basicweb.git
 ```
 
-## How to build
+## How to build it
 
 Compilation example for `windows`, `linux` and `macos`.
 
