@@ -3,6 +3,7 @@ import (
   "flag"
   "io"
   "log"
+  "path/filepath"
   "net/http"
   "os"
   "strconv"
@@ -42,10 +43,8 @@ func returnCode(w http.ResponseWriter,code int) {
 }
 func fileHandler(w http.ResponseWriter, r *http.Request) {
   var fullpath string
-  if stat, err := os.Stat(*dir+"/"+r.Host); err == nil && stat.IsDir() {
-    fullpath = *dir+"/"+r.Host
-  } else {
-    fullpath = *dir
+  if stat, err := os.Stat(*dir+"/"+r.Host); err == nil && stat.IsDir() { fullpath = *dir+"/"+r.Host
+  } else { fullpath = *dir
   }
   log.Println( r.Method, r.URL.Path )
   if( *nocache ) { w.Header().Set("Cache-Control","no-cache, no-store, must-revalidate"); w.Header().Set("Expires","0"); }
@@ -61,6 +60,9 @@ func fileHandler(w http.ResponseWriter, r *http.Request) {
     if( r.Method == "OPTIONS" ) {
       return
     } else if( (r.Method == "PUT") || (r.Method == "POST") ) { // Upload fle
+      if _, err := os.Stat(filepath.Dir(fullpath+r.URL.Path)); err != nil { 
+        if err := os.MkdirAll(filepath.Dir(fullpath+r.URL.Path),0755); err != nil { returnCode(w,http.StatusInternalServerError); return }
+      }
       dst, err := os.Create(fullpath+r.URL.Path)
       if err != nil { http.Error(w, err.Error(), http.StatusInternalServerError); return }
       defer dst.Close()
