@@ -74,3 +74,13 @@ $ ./basicweb
 2020/12/03 18:04:59 Starting web server with port 80 on directory . with status response 0
 2020/12/03 18:05:12 GET /
 ```
+
+## Docker image
+
+basicweb is available as a Docker image. See [https://hub.docker.com/repository/docker/cyd01/basicweb/](https://hub.docker.com/repository/docker/cyd01/basicweb/).
+
+```bash
+$ docker run --rm -p 8080:80 cyd01/basicweb
+2020/12/05 13:51:32 Starting web server with port 80 on directory . with status response 0
+
+```
