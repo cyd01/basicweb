@@ -14,12 +14,13 @@ Here are the specifications:
 - remove files with **DELETE** HTTP verb
 - protect against modifications with basic authentication
 - force status code responses
+- light dynamic scripts managment
 - easy configuration with command-line parameters
 
 ## How to get it
 
 ```bash
-git clone https://github.com/cyd01/basicweb.git
+git clone https://gitlab.techlabfdj.io/cyd/basicweb.git
 ```
 
 ## How to build it
@@ -52,7 +53,9 @@ done
 
 ```bash
 $ ./basicweb -h
-Usage of basicweb:
+Usage of ./basicweb:
+  -cmd string
+        external command
   -dir string
         root directory (default ".")
   -nocache
@@ -77,10 +80,14 @@ $ ./basicweb
 
 ## Docker image
 
-basicweb is available as a Docker image. See [https://hub.docker.com/repository/docker/cyd01/basicweb/](https://hub.docker.com/repository/docker/cyd01/basicweb/).
-
 ```bash
-$ docker run --rm -p 8080:80 cyd01/basicweb
+$ docker run --rm -p 8080:80 basicweb
 2020/12/05 13:51:32 Starting web server with port 80 on directory . with status response 0
 
+```
+
+## Dynamic scripts example
+
+```bash
+$ ./basicweb -cmd "/bin/bash -c cmd.sh"
 ```
