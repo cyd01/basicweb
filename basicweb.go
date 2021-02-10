@@ -1,22 +1,15 @@
 package main
 import (
-  "os/exec"
-  "flag"
-  "io"
-  "io/ioutil"
-  "log"
-  "path/filepath"
-  "net/http"
-  "os"
-  "strconv"
+  "flag"; "io"; "io/ioutil" ; "log"; "net/http"; "path/filepath"; "os"; "os/exec"; "strconv"; "strings"
 )
 var (
-  port     = flag.String( "port"     ,  "80"   ,  "port web server"                                       )
+  command  = flag.String( "cmd"      ,  ""     ,  "external command" )
   dir      = flag.String( "dir"      ,  "."    ,  "root directory"                                        )
+  nocache  = flag.Bool  ( "nocache"  ,  false  ,  "force not to cache" )
+  password = flag.String( "pass"     ,  ""     ,  "password for basic authentication (modification only)" )
+  port     = flag.String( "port"     ,  "80"   ,  "port web server"                                       )
   status   = flag.Int   ( "status"   ,  0      ,  "force return code"                                     )
   username = flag.String( "user"     ,  ""     ,  "username for basic authentication (modification only)" )
-  password = flag.String( "pass"     ,  ""     ,  "password for basic authentication (modification only)" )
-  nocache  = flag.Bool  ( "nocache"  ,  false  ,  "force not to cache" )
 )
 func basicAuth(w http.ResponseWriter, r *http.Request) bool {
   if( *username!="" && *password!="" ) {
@@ -29,6 +22,10 @@ func basicAuth(w http.ResponseWriter, r *http.Request) bool {
   }
   return true
 }
+func setnocache(w http.ResponseWriter) {
+  w.Header().Set("Cache-Control","no-cache, no-store, must-revalidate"); 
+  w.Header().Set("Expires","0");
+}
 func returnCode(w http.ResponseWriter,code int) {
   w.WriteHeader(code)
   w.Write([]byte(http.StatusText(code)))
@@ -39,7 +36,7 @@ func fileHandler(w http.ResponseWriter, r *http.Request) {
   } else { fullpath = *dir
   }
   log.Println( r.Method, r.URL.Path )
-  if( *nocache ) { w.Header().Set("Cache-Control","no-cache, no-store, must-revalidate"); w.Header().Set("Expires","0"); }
+  if( *nocache ) { setnocache(w) }
   if( (r.Method!="GET")&&(r.Method!="HEAD")&&(r.Method!="OPTIONS") ) { if !basicAuth(w,r) { return } }
   if origin := r.Header.Get("Origin"); origin != "" {
     w.Header().Set("Access-Control-Allow-Origin", origin)
@@ -78,7 +75,9 @@ func fileHandler(w http.ResponseWriter, r *http.Request) {
 }
 func cmdHandler(w http.ResponseWriter, r *http.Request) {
   log.Println( r.Method, r.URL.Path )
-  cmd := exec.Command("/bin/bash", "-c", "cmd.sh", "2>&1")
+  commands := strings.Split(*command+" 2>&1"," ")
+  setnocache(w)
+  cmd := exec.Command(commands[0],commands[1:]...)
   stdinPipe, _ := cmd.StdinPipe() ; defer stdinPipe.Close()
   stdoutPipe, _ := cmd.StdoutPipe() ; defer stdoutPipe.Close()
   r.ParseForm()
@@ -92,9 +91,9 @@ func cmdHandler(w http.ResponseWriter, r *http.Request) {
 }
 func main() {
   flag.Parse()
-  http.Handle("/cmd", http.HandlerFunc(cmdHandler))
-  http.Handle("/", http.HandlerFunc(fileHandler))
-  http.HandleFunc("/ping", func (w http.ResponseWriter, r *http.Request) { log.Println( r.Method, r.URL.Path ); w.Write([]byte("pong")) } )
   log.Println("Starting web server with port "+*port+" on directory "+*dir+" with status response "+strconv.Itoa(*status))
+  if( len(*command)>0 ) { log.Println("Add dynamic command <"+*command+"> to /cmd path"); http.Handle("/cmd", http.HandlerFunc(cmdHandler)) }
+  http.HandleFunc("/ping", func (w http.ResponseWriter, r *http.Request) { log.Println( r.Method, r.URL.Path ); w.Write([]byte("pong")) } )
+  http.Handle("/", http.HandlerFunc(fileHandler))
   log.Fatal(http.ListenAndServe(":"+*port, nil))
 }
