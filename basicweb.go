@@ -1,7 +1,9 @@
 package main
 import (
+  "os/exec"
   "flag"
   "io"
+  "io/ioutil"
   "log"
   "path/filepath"
   "net/http"
@@ -27,16 +29,6 @@ func basicAuth(w http.ResponseWriter, r *http.Request) bool {
   }
   return true
 }
-func enableCors(w *http.ResponseWriter, r *http.Request) {
-  if origin := r.Header.Get("Origin"); origin != "" {
-    (*w).Header().Set("Access-Control-Allow-Origin", origin)
-    if r.Method == "OPTIONS" {
-      (*w).Header().Set("Access-Control-Allow-Credentials", "true")
-      (*w).Header().Set("Access-Control-Allow-Methods", "HEAD POST, GET, OPTIONS, PUT, DELETE")
-      (*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
-    }
-  }
-}
 func returnCode(w http.ResponseWriter,code int) {
   w.WriteHeader(code)
   w.Write([]byte(http.StatusText(code)))
@@ -49,16 +41,22 @@ func fileHandler(w http.ResponseWriter, r *http.Request) {
   log.Println( r.Method, r.URL.Path )
   if( *nocache ) { w.Header().Set("Cache-Control","no-cache, no-store, must-revalidate"); w.Header().Set("Expires","0"); }
   if( (r.Method!="GET")&&(r.Method!="HEAD")&&(r.Method!="OPTIONS") ) { if !basicAuth(w,r) { return } }
-  enableCors(&w,r)
+  if origin := r.Header.Get("Origin"); origin != "" {
+    w.Header().Set("Access-Control-Allow-Origin", origin)
+    if r.Method == "OPTIONS" {
+      w.Header().Set("Access-Control-Allow-Credentials", "true")
+      w.Header().Set("Access-Control-Allow-Methods", "HEAD POST, GET, OPTIONS, PUT, DELETE")
+      w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+    }
+  }
   if( *status!=0 ) { // We force return code
     if str := http.StatusText(*status); str != "" {
       w.WriteHeader(*status)
       if( (*status==301)||(*status==302)||(*status==303) ) { w.Header().Set("Location","/") }
-      if( *status!= 204 ) { w.Write([]byte(strconv.Itoa(*status)+" - "+str)) }
+      if( *status!=204 ) { w.Write([]byte(strconv.Itoa(*status)+" - "+str)) }
     } else { returnCode(w,http.StatusInternalServerError) }
   } else { // We serve files
-    if( r.Method == "OPTIONS" ) {
-      return
+    if( r.Method == "OPTIONS" ) { return
     } else if( (r.Method == "PUT") || (r.Method == "POST") ) { // Upload fle
       if _, err := os.Stat(filepath.Dir(fullpath+r.URL.Path)); err != nil { 
         if err := os.MkdirAll(filepath.Dir(fullpath+r.URL.Path),0755); err != nil { returnCode(w,http.StatusInternalServerError); return }
@@ -74,13 +72,27 @@ func fileHandler(w http.ResponseWriter, r *http.Request) {
       returnCode(w,http.StatusNoContent)
     } else if( (r.Method == "GET") || (r.Method == "HEAD") ) { // Download file or file info
       http.FileServer(http.Dir(fullpath)).ServeHTTP(w, r)
-    } else { // Unknown method
-      returnCode(w,http.StatusMethodNotAllowed)
+    } else { returnCode(w,http.StatusMethodNotAllowed)
     }
   }
 }
+func cmdHandler(w http.ResponseWriter, r *http.Request) {
+  log.Println( r.Method, r.URL.Path )
+  cmd := exec.Command("/bin/bash", "-c", "cmd.sh", "2>&1")
+  stdinPipe, _ := cmd.StdinPipe() ; defer stdinPipe.Close()
+  stdoutPipe, _ := cmd.StdoutPipe() ; defer stdoutPipe.Close()
+  r.ParseForm()
+  cmd.Env = append(os.Environ(),"REQUEST_METHOD="+r.Method,"REQUEST_URI="+r.URL.Path,"SCRIPT_NAME="+r.URL.Path,"HTTP_HOST="+r.Host,"SERVER_PROTOCOL="+r.Proto,"REMOTE_ADDR="+r.RemoteAddr,"CONTENT_TYPE="+r.Header.Get("Content-type"),"HTTP_CONTENT_TYPE="+r.Header.Get("Content-type"),"CONTENT_LENGTH="+r.Header.Get("Content-length"),"HTTP_CONTENT_LENGTH="+r.Header.Get("Content-length"),"QUERY_STRING="+r.URL.RawQuery)
+  cmd.Start()
+  if l,_ := strconv.Atoi(r.Header.Get("Content-Length")) ; l>0 { go func() { io.Copy(stdinPipe, r.Body) ; stdinPipe.Close() }() }
+  var stdout []byte
+  go func() { stdout, _ = ioutil.ReadAll(stdoutPipe) }()
+  cmd.Wait()
+  w.Write(stdout)
+}
 func main() {
   flag.Parse()
+  http.Handle("/cmd", http.HandlerFunc(cmdHandler))
   http.Handle("/", http.HandlerFunc(fileHandler))
   http.HandleFunc("/ping", func (w http.ResponseWriter, r *http.Request) { log.Println( r.Method, r.URL.Path ); w.Write([]byte("pong")) } )
   log.Println("Starting web server with port "+*port+" on directory "+*dir+" with status response "+strconv.Itoa(*status))
