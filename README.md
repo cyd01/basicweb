@@ -6,7 +6,7 @@
 Here are the specifications:
 
 - no external dependencies
-- less than 100 lines of code
+- just a little mode than 100 lines of code
 - very light cache management
 - light [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) management
 - light virtual host management
