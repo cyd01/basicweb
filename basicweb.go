@@ -85,20 +85,33 @@ func cmdHandler(w http.ResponseWriter, r *http.Request) {
   for key, val := range r.Header { cmd.Env = append(cmd.Env, "HTTP_" + strings.ReplaceAll( strings.ToUpper( key ), "-", "_" )+"="+val[0]) }
   cmd.Start()
   if l,_ := strconv.Atoi(r.Header.Get("Content-Length")) ; l>0 { go func() { io.Copy(stdinPipe, r.Body) ; stdinPipe.Close() }() }
-  scanner := bufio.NewScanner(stdoutPipe)
-  for scanner.Scan() {
-    out := scanner.Text() ; 
-    if( len(out)==0 ) { break }
-    if( !strings.Contains(out,":") ) { w.Write([]byte(out)); break }
-    head := strings.SplitN( out, ":", 2)
-    if( strings.EqualFold(head[0],"Status") ) {
-      if s,err := strconv.Atoi(strings.TrimSpace(head[1])) ; err==nil { w.WriteHeader(s) }
+  reader := bufio.NewReader(stdoutPipe)
+  status := 200
+  w.Header().Set("Transfer-Encoding", "chunked")
+  var err error
+  for {
+    var out string
+    if out,err = reader.ReadString('\n'); err!=nil { break }
+    out = strings.TrimSpace(out)
+    if( (len(out)>0) && strings.Contains(out,":") ) {
+      head := strings.SplitN( out, ":", 2)
+      if( strings.EqualFold(head[0],"Status") ) {
+        if s,err := strconv.Atoi(strings.TrimSpace(head[1])) ; err==nil { status=s; log.Println("Status: "+strconv.Itoa(status)) }
+      }
+      w.Header().Set( head[0], strings.TrimSpace(head[1]) )
+    } else if( len(out)>0 ) {
+      w.WriteHeader(status); w.Write([]byte(out)); status=0 ; break
+    } else {
+      break
     }
-    w.Header().Set( head[0], strings.TrimSpace(head[1]) )
   }
-  for scanner.Scan() {
-    out := scanner.Text()
-    w.Write( []byte(out+"\r\n") )
+  if( status>0 ) { w.WriteHeader(status) }
+  for {
+    out := make([]byte, 512)
+    var n int
+    n, err = io.ReadFull(reader,out)
+    if(n>0) { w.Write(out[:n]) ; }
+    if( err!=nil ) { break }
   }
   cmd.Wait()
 }
