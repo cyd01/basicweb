@@ -1,6 +1,6 @@
 package main
 import (
-  "flag"; "io"; "io/ioutil" ; "log"; "net/http"; "path/filepath"; "os"; "os/exec"; "strconv"; "strings"
+  "bufio"; "flag"; "io"; "log"; "net/http"; "path/filepath"; "os"; "os/exec"; "strconv"; "strings"
 )
 var (
   command  = flag.String( "cmd"      ,  ""     ,  "external command" )
@@ -81,13 +81,26 @@ func cmdHandler(w http.ResponseWriter, r *http.Request) {
   stdinPipe, _ := cmd.StdinPipe() ; defer stdinPipe.Close()
   stdoutPipe, _ := cmd.StdoutPipe() ; defer stdoutPipe.Close()
   r.ParseForm()
-  cmd.Env = append(os.Environ(),"REQUEST_METHOD="+r.Method,"REQUEST_URI="+r.URL.Path,"SCRIPT_NAME="+r.URL.Path,"HTTP_HOST="+r.Host,"SERVER_PROTOCOL="+r.Proto,"REMOTE_ADDR="+r.RemoteAddr,"CONTENT_TYPE="+r.Header.Get("Content-type"),"HTTP_CONTENT_TYPE="+r.Header.Get("Content-type"),"CONTENT_LENGTH="+r.Header.Get("Content-length"),"HTTP_CONTENT_LENGTH="+r.Header.Get("Content-length"),"QUERY_STRING="+r.URL.RawQuery)
+  cmd.Env = append(os.Environ(),"REQUEST_METHOD="+r.Method,"REQUEST_URI="+r.URL.Path,"SCRIPT_NAME="+r.URL.Path,"HTTP_HOST="+r.Host,"SERVER_PROTOCOL="+r.Proto,"REMOTE_ADDR="+r.RemoteAddr,"CONTENT_TYPE="+r.Header.Get("Content-type"),"CONTENT_LENGTH="+r.Header.Get("Content-length"),"QUERY_STRING="+r.URL.RawQuery)
+  for key, val := range r.Header { cmd.Env = append(cmd.Env, "HTTP_" + strings.ReplaceAll( strings.ToUpper( key ), "-", "_" )+"="+val[0]) }
   cmd.Start()
   if l,_ := strconv.Atoi(r.Header.Get("Content-Length")) ; l>0 { go func() { io.Copy(stdinPipe, r.Body) ; stdinPipe.Close() }() }
-  var stdout []byte
-  go func() { stdout, _ = ioutil.ReadAll(stdoutPipe) }()
+  scanner := bufio.NewScanner(stdoutPipe)
+  for scanner.Scan() {
+    out := scanner.Text() ; 
+    if( len(out)==0 ) { break }
+    if( !strings.Contains(out,":") ) { w.Write([]byte(out)); break }
+    head := strings.SplitN( out, ":", 2)
+    if( strings.EqualFold(head[0],"Status") ) {
+      if s,err := strconv.Atoi(strings.TrimSpace(head[1])) ; err==nil { w.WriteHeader(s) }
+    }
+    w.Header().Set( head[0], strings.TrimSpace(head[1]) )
+  }
+  for scanner.Scan() {
+    out := scanner.Text()
+    w.Write( []byte(out+"\r\n") )
+  }
   cmd.Wait()
-  w.Write(stdout)
 }
 func main() {
   flag.Parse()
