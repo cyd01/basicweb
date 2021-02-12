@@ -3,9 +3,9 @@ import (
   "bufio"; "flag"; "io"; "log"; "net/http"; "path/filepath"; "os"; "os/exec"; "strconv"; "strings"
 )
 var (
-  command  = flag.String( "cmd"      ,  ""     ,  "external command" )
+  command  = flag.String( "cmd"      ,  ""     ,  "external command"                                      )
   dir      = flag.String( "dir"      ,  "."    ,  "root directory"                                        )
-  nocache  = flag.Bool  ( "nocache"  ,  false  ,  "force not to cache" )
+  nocache  = flag.Bool  ( "nocache"  ,  false  ,  "force not to cache"                                    )
   password = flag.String( "pass"     ,  ""     ,  "password for basic authentication (modification only)" )
   port     = flag.String( "port"     ,  "80"   ,  "port web server"                                       )
   status   = flag.Int   ( "status"   ,  0      ,  "force return code"                                     )
@@ -110,7 +110,8 @@ func cmdHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
   flag.Parse()
   log.Println("Starting web server with port "+*port+" on directory "+*dir+" with status response "+strconv.Itoa(*status))
-  if( len(*command)>0 ) { log.Println("Add dynamic command <"+*command+"> to /cmd path"); http.Handle("/cmd/", http.HandlerFunc(cmdHandler)) }
+  var cmdpath string = "/cmd/"; if val,ok := os.LookupEnv("BASICWEB_CMD"); ok && len(val)>0 { if(!strings.HasPrefix(val,"/")) { val="/"+val }; if(!strings.HasSuffix(val,"/")) { val=val+"/" }; cmdpath=val }
+  if( len(*command)>0 ) { log.Println("Add dynamic command <"+*command+"> to "+cmdpath+" path"); http.Handle(cmdpath, http.HandlerFunc(cmdHandler)) }
   http.HandleFunc("/ping", func (w http.ResponseWriter, r *http.Request) { log.Println( r.Method, r.URL.Path ); w.Write([]byte("pong")) } )
   http.Handle("/", http.HandlerFunc(fileHandler))
   log.Fatal(http.ListenAndServe(":"+*port, nil))
