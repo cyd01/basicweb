@@ -85,23 +85,24 @@ func cmdHandler(w http.ResponseWriter, r *http.Request) {
   for key, val := range r.Header { cmd.Env = append(cmd.Env, "HTTP_" + strings.ReplaceAll( strings.ToUpper( key ), "-", "_" )+"="+val[0]) }
   cmd.Start()
   if l,_ := strconv.Atoi(r.Header.Get("Content-Length")) ; l>0 { go func() { io.Copy(stdinPipe, r.Body) ; stdinPipe.Close() }() }
-  var err error; reader := bufio.NewReader(stdoutPipe); status := 200
-  w.Header().Set("Transfer-Encoding", "chunked")
+  var err error; reader := bufio.NewReader(stdoutPipe)
+  w.Header().Set("Transfer-Encoding", "chunked"); w.Header().Set("Connection", "Close")
   for { var out string
     if out,err = reader.ReadString('\n'); err!=nil { break }
     out = strings.TrimSpace(out)
     if( (len(out)>0) && strings.Contains(out,":") ) {
       head := strings.SplitN( out, ":", 2)
-      if( strings.EqualFold(head[0],"Status") ) { if s,err := strconv.Atoi(strings.TrimSpace(head[1])) ; err==nil { status=s; log.Println("Status: "+strconv.Itoa(status)) } }
+      if( strings.EqualFold(head[0],"Status") ) { if s,err := strconv.Atoi(strings.TrimSpace(head[1])) ; err==nil {
+        w.WriteHeader(s); log.Println("Status: "+strconv.Itoa(s)) } 
+      }
       w.Header().Set( head[0], strings.TrimSpace(head[1]) )
-    } else if( len(out)>0 ) { w.WriteHeader(status); w.Write([]byte(out)); status=0 ; break
+    } else if( len(out)>0 ) { w.Write([]byte(out)); break
     } else { break
     }
   }
-  if( status>0 ) { w.WriteHeader(status) }
   for { var n int; out := make([]byte, 512)
     n, err = io.ReadFull(reader,out)
-    if(n>0) { w.Write(out[:n]) ; }
+    if(n>0) { w.Write(out[:n]) }
     if( err!=nil ) { break }
   }
   cmd.Wait()
@@ -109,7 +110,7 @@ func cmdHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
   flag.Parse()
   log.Println("Starting web server with port "+*port+" on directory "+*dir+" with status response "+strconv.Itoa(*status))
-  if( len(*command)>0 ) { log.Println("Add dynamic command <"+*command+"> to /cmd path"); http.Handle("/cmd", http.HandlerFunc(cmdHandler)) }
+  if( len(*command)>0 ) { log.Println("Add dynamic command <"+*command+"> to /cmd path"); http.Handle("/cmd/", http.HandlerFunc(cmdHandler)) }
   http.HandleFunc("/ping", func (w http.ResponseWriter, r *http.Request) { log.Println( r.Method, r.URL.Path ); w.Write([]byte("pong")) } )
   http.Handle("/", http.HandlerFunc(fileHandler))
   log.Fatal(http.ListenAndServe(":"+*port, nil))
