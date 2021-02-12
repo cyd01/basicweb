@@ -3,7 +3,7 @@ import (
   "bufio"; "flag"; "io"; "log"; "net/http"; "path/filepath"; "os"; "os/exec"; "strconv"; "strings"
 )
 var (
-  command  = flag.String( "cmd"      ,  ""     ,  "external command (/path1/=cmd1,...)"                   )
+  command  = flag.String( "cmd"      ,  ""     ,  "external command (path1=cmd1,...)"                   )
   dir      = flag.String( "dir"      ,  "."    ,  "root directory"                                        )
   nocache  = flag.Bool  ( "nocache"  ,  false  ,  "force not to cache"                                    )
   password = flag.String( "pass"     ,  ""     ,  "password for basic authentication (modification only)" )
@@ -113,7 +113,8 @@ func main() {
   log.Println("Starting web server with port "+*port+" on directory "+*dir+" with status response "+strconv.Itoa(*status))
   commands := strings.Split(*command,",")
   for _, def := range commands {
-    cmd := strings.Split(def,"="); path := cmd[0]; if( !strings.HasPrefix(path,"/") ) { path = "/"+path }; if( !strings.HasSuffix(path,"/") ) { path = path+"/" }
+    cmd := strings.Split(def,"="); if( len(cmd)!=2 ) { log.Fatal("Wrong command definition: path=command") }
+    path := cmd[0]; if( !strings.HasPrefix(path,"/") ) { path = "/"+path }; if( !strings.HasSuffix(path,"/") ) { path = path+"/" }
     if( (len(path)>1) && (len(cmd[1])>0) ) { log.Println("Add dynamic command <"+cmd[1]+"> to "+path+" path"); http.HandleFunc( path, func (w http.ResponseWriter, r *http.Request) { cmdHandler( cmd[1], w, r ) } ) }
   }
   http.HandleFunc("/ping", func (w http.ResponseWriter, r *http.Request) { log.Println( r.Method, r.URL.Path ); w.Write([]byte("pong")) } )
