@@ -3,7 +3,7 @@ import (
   "bufio"; "flag"; "io"; "log"; "net/http"; "path/filepath"; "os"; "os/exec"; "strconv"; "strings"
 )
 var (
-  command  = flag.String( "cmd"      ,  ""     ,  "external command"                                      )
+  command  = flag.String( "cmd"      ,  ""     ,  "external command (/path1/=cmd1,...)"                   )
   dir      = flag.String( "dir"      ,  "."    ,  "root directory"                                        )
   nocache  = flag.Bool  ( "nocache"  ,  false  ,  "force not to cache"                                    )
   password = flag.String( "pass"     ,  ""     ,  "password for basic authentication (modification only)" )
@@ -73,9 +73,9 @@ func fileHandler(w http.ResponseWriter, r *http.Request) {
     }
   }
 }
-func cmdHandler(w http.ResponseWriter, r *http.Request) {
+func cmdHandler(cmm string, w http.ResponseWriter, r *http.Request) {
   log.Println( r.Method, r.URL.Path )
-  commands := strings.Split(*command+" 2>&1"," ")
+  commands := strings.Split(cmm+" 2>&1"," ")
   setnocache(w)
   cmd := exec.Command(commands[0],commands[1:]...)
   stdinPipe, _ := cmd.StdinPipe() ; defer stdinPipe.Close()
@@ -110,8 +110,11 @@ func cmdHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
   flag.Parse()
   log.Println("Starting web server with port "+*port+" on directory "+*dir+" with status response "+strconv.Itoa(*status))
-  var cmdpath string = "/cmd/"; if val,ok := os.LookupEnv("BASICWEB_CMD"); ok && len(val)>0 { if(!strings.HasPrefix(val,"/")) { val="/"+val }; if(!strings.HasSuffix(val,"/")) { val=val+"/" }; cmdpath=val }
-  if( len(*command)>0 ) { log.Println("Add dynamic command <"+*command+"> to "+cmdpath+" path"); http.Handle(cmdpath, http.HandlerFunc(cmdHandler)) }
+  commands := strings.Split(*command,",")
+  for _, def := range commands {
+    cmd := strings.Split(def,"="); path := cmd[0]; if( !strings.HasPrefix(path,"/") ) { path = "/"+path }
+    if( (len(path)>1) && (len(cmd[1])>0) ) { log.Println("Add dynamic command <"+cmd[1]+"> to "+path+" path"); http.HandleFunc( path, func (w http.ResponseWriter, r *http.Request) { cmdHandler( cmd[1], w, r ) } ) }
+  }
   http.HandleFunc("/ping", func (w http.ResponseWriter, r *http.Request) { log.Println( r.Method, r.URL.Path ); w.Write([]byte("pong")) } )
   http.Handle("/", http.HandlerFunc(fileHandler))
   log.Fatal(http.ListenAndServe(":"+*port, nil))
