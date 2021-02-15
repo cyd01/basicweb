@@ -2,7 +2,7 @@
 
 ## Description
 
-**basiweb** is a very light web server written in [Go](https://golang.org/).  
+**basicweb** is a very light web server written in [Go](https://golang.org/).  
 Here are the specifications:
 
 - no external dependencies
