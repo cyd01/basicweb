@@ -10,7 +10,9 @@ Here are the specifications:
 - very light cache management
 - light [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) management
 - light virtual host management
-- upload files with **POST** or **PUT** HTTP verb
+- upload files with **POST** o
+
+r **PUT** HTTP verb
 - remove files with **DELETE** HTTP verb
 - protect against modifications with basic authentication
 - force status code responses
@@ -55,7 +57,7 @@ done
 $ ./basicweb -h
 Usage of ./basicweb:
   -cmd string
-        external command
+        external command (/path1/=cmd1,...)
   -dir string
         root directory (default ".")
   -nocache
@@ -66,6 +68,8 @@ Usage of ./basicweb:
         port web server (default "80")
   -status int
         force return code
+  -timeout int
+        timeout for external command (default 30)
   -user string
         username for basic authentication (modification only)
 ```
@@ -89,5 +93,5 @@ $ docker run --rm -p 8080:80 basicweb
 ## Dynamic scripts example
 
 ```bash
-$ ./basicweb -cmd "/bin/bash -c cmd.sh"
+$ ./basicweb -cmd "/cmd/=/bin/bash -c cmd.sh"
 ```
