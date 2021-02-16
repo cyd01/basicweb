@@ -66,6 +66,8 @@ Usage of ./basicweb:
         port web server (default "80")
   -status int
         force return code
+  -timeout int
+        timeout for external command (default 30)
   -user string
         username for basic authentication (modification only)
 ```
