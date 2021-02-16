@@ -10,9 +10,7 @@ Here are the specifications:
 - very light cache management
 - light [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) management
 - light virtual host management
-- upload files with **POST** o
-
-r **PUT** HTTP verb
+- upload files with **POST** or **PUT** HTTP verb
 - remove files with **DELETE** HTTP verb
 - protect against modifications with basic authentication
 - force status code responses
@@ -68,8 +66,6 @@ Usage of ./basicweb:
         port web server (default "80")
   -status int
         force return code
-  -timeout int
-        timeout for external command (default 30)
   -user string
         username for basic authentication (modification only)
 ```
