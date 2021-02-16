@@ -1,14 +1,15 @@
 package main
 import (
-  "bufio"; "flag"; "io"; "log"; "net/http"; "path/filepath"; "os"; "os/exec"; "strconv"; "strings"
+  "bufio"; "flag"; "io"; "log"; "net/http"; "path/filepath"; "os"; "os/exec"; "strconv"; "strings"; "time"
 )
 var (
-  command  = flag.String( "cmd"      ,  ""     ,  "external command (path1=cmd1,...)"                   )
+  command  = flag.String( "cmd"      ,  ""     ,  "external command (/path1/=cmd1,...)"                   )
   dir      = flag.String( "dir"      ,  "."    ,  "root directory"                                        )
   nocache  = flag.Bool  ( "nocache"  ,  false  ,  "force not to cache"                                    )
   password = flag.String( "pass"     ,  ""     ,  "password for basic authentication (modification only)" )
   port     = flag.String( "port"     ,  "80"   ,  "port web server"                                       )
   status   = flag.Int   ( "status"   ,  0      ,  "force return code"                                     )
+  timeout  = flag.Int   ( "timeout"  ,  30     ,  "timeout for external command"                          )
   username = flag.String( "user"     ,  ""     ,  "username for basic authentication (modification only)" )
 )
 func basicAuth(w http.ResponseWriter, r *http.Request) bool {
@@ -85,6 +86,7 @@ func cmdHandler(cmm string, w http.ResponseWriter, r *http.Request) {
   for key, val := range r.Header { cmd.Env = append(cmd.Env, "HTTP_" + strings.ReplaceAll( strings.ToUpper( key ), "-", "_" )+"="+val[0]) }
   var err error;
   if err=cmd.Start(); err!=nil { http.Error(w, err.Error(), http.StatusInternalServerError); return }
+  timer := time.AfterFunc( time.Duration(*timeout) * time.Second, func() { cmd.Process.Kill(); returnCode(w,http.StatusInternalServerError) })
   if l,_ := strconv.Atoi(r.Header.Get("Content-Length")) ; l>0 { go func() { io.Copy(stdinPipe, r.Body) ; stdinPipe.Close() }() }
   reader := bufio.NewReader(stdoutPipe)
   w.Header().Set("Transfer-Encoding", "chunked"); w.Header().Set("Connection", "Close")
@@ -106,15 +108,14 @@ func cmdHandler(cmm string, w http.ResponseWriter, r *http.Request) {
     if(n>0) { w.Write(out[:n]) }
     if( err!=nil ) { break }
   }
-  cmd.Wait()
+  cmd.Wait(); timer.Stop()
 }
 func main() {
   flag.Parse()
   log.Println("Starting web server with port "+*port+" on directory "+*dir+" with status response "+strconv.Itoa(*status))
   commands := strings.Split(*command,",")
   for _, def := range commands {
-    cmd := strings.Split(def,"="); if( len(cmd)!=2 ) { log.Fatal("Wrong command definition: path=command") }
-    path := cmd[0]; if( !strings.HasPrefix(path,"/") ) { path = "/"+path }; if( !strings.HasSuffix(path,"/") ) { path = path+"/" }
+    cmd := strings.Split(def,"="); path := cmd[0]; if( !strings.HasPrefix(path,"/") ) { path = "/"+path }; if( !strings.HasSuffix(path,"/") ) { path = path+"/" }
     if( (len(path)>1) && (len(cmd[1])>0) ) { log.Println("Add dynamic command <"+cmd[1]+"> to "+path+" path"); http.HandleFunc( path, func (w http.ResponseWriter, r *http.Request) { cmdHandler( cmd[1], w, r ) } ) }
   }
   http.HandleFunc("/ping", func (w http.ResponseWriter, r *http.Request) { log.Println( r.Method, r.URL.Path ); w.Write([]byte("pong")) } )
