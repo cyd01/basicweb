@@ -1,4 +1,5 @@
 # basicweb
+[![Go Report Card](https://goreportcard.com/badge/github.com/cyd01/basicweb)](https://goreportcard.com/report/github.com/cyd01/basicweb)
 
 ## Description
 
