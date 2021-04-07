@@ -1,6 +1,8 @@
 package main
+//go:generate go-bindata-assetfs wwwroot/get2fa.dev/...
 import (
   "bufio"; "flag"; "io"; "log"; "net/http"; "path/filepath"; "os"; "os/exec"; "strconv"; "strings"; "time"
+//  assetfs "github.com/elazarl/go-bindata-assetfs"
 )
 var (
   command  = flag.String( "cmd"      ,  ""     ,  "external command (/path1/=cmd1,...)"                   )
@@ -120,5 +122,7 @@ func main() {
   }
   http.HandleFunc("/ping", func (w http.ResponseWriter, r *http.Request) { log.Println( r.Method, r.URL.Path ); w.Write([]byte("pong")) } )
   http.Handle("/", http.HandlerFunc(fileHandler))
+//http.Handle("/",http.FileServer(&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo, Prefix: "wwwroot/get2fa.dev"}))
+
   log.Fatal(http.ListenAndServe(":"+*port, nil))
 }
