@@ -112,7 +112,7 @@ func cmdHandler(cmm string, w http.ResponseWriter, r *http.Request) {
 }
 func main() {
   flag.Parse()
-  log.Println("Starting web server with port "+*port+" on directory "+*dir+" with status response "+strconv.Itoa(*status))
+  log.Println("☢ Starting web server with port "+*port+" on directory "+*dir+" with status response "+strconv.Itoa(*status))
   commands := strings.Split(*command,",")
   for _, def := range commands {
     cmd := strings.Split(def,"="); path := cmd[0]; if( !strings.HasPrefix(path,"/") ) { path = "/"+path }; if( !strings.HasSuffix(path,"/") ) { path = path+"/" }
