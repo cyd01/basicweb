@@ -16,3 +16,5 @@ basicweb_*
 # vendor/
 wwwroot/
 Dockerfile_delivery
+go.mod
+go.sum
