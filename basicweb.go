@@ -79,18 +79,18 @@ func fileHandler(w http.ResponseWriter, r *http.Request) {
 func cmdHandler(cmm string, w http.ResponseWriter, r *http.Request) {
   log.Println( r.Method, r.URL.Path )
   commands := strings.Split(cmm+" 2>&1"," ")
-  setnocache(w)
   cmd := exec.Command(commands[0],commands[1:]...)  
-  stdinPipe, _ := cmd.StdinPipe() ; defer stdinPipe.Close()
-  stdoutPipe, _ := cmd.StdoutPipe() ; defer stdoutPipe.Close()
-  r.ParseForm()
+  //r.ParseForm()
   cmd.Env = append(os.Environ(),"REQUEST_METHOD="+r.Method,"REQUEST_URI="+r.URL.Path,"SCRIPT_NAME="+r.URL.Path,"HTTP_HOST="+r.Host,"SERVER_PROTOCOL="+r.Proto,"REMOTE_ADDR="+r.RemoteAddr,"CONTENT_TYPE="+r.Header.Get("Content-type"),"CONTENT_LENGTH="+r.Header.Get("Content-length"),"QUERY_STRING="+r.URL.RawQuery)
   for key, val := range r.Header { cmd.Env = append(cmd.Env, "HTTP_" + strings.ReplaceAll( strings.ToUpper( key ), "-", "_" )+"="+val[0]) }
   var err error;
+  stdinPipe, _ := cmd.StdinPipe() ; defer stdinPipe.Close()
+  stdoutPipe, _ := cmd.StdoutPipe() ; defer stdoutPipe.Close()
   if err=cmd.Start(); err!=nil { http.Error(w, err.Error(), http.StatusInternalServerError); return }
   timer := time.AfterFunc( time.Duration(*timeout) * time.Second, func() { cmd.Process.Kill(); returnCode(w,http.StatusInternalServerError) })
-  if l,_ := strconv.Atoi(r.Header.Get("Content-Length")) ; l>0 { go func() { io.Copy(stdinPipe, r.Body) ; stdinPipe.Close() }() }
+  if l,_ := strconv.ParseInt(r.Header.Get("Content-Length"),10,64) ; l>0 { go func() { io.Copy(stdinPipe, r.Body); stdinPipe.Close() }() }
   reader := bufio.NewReader(stdoutPipe)
+  setnocache(w)
   w.Header().Set("Transfer-Encoding", "chunked"); w.Header().Set("Connection", "Close")
   for { var out string
     if out,err = reader.ReadString('\n'); err!=nil { break }
