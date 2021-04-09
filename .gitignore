@@ -18,3 +18,4 @@ wwwroot/
 Dockerfile_delivery
 go.mod
 go.sum
+basicweb
