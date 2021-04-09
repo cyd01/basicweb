@@ -59,8 +59,9 @@ func fileHandler(w http.ResponseWriter, r *http.Request) {
     if( r.Method == "OPTIONS" ) { return
     } else if( (r.Method == "PUT") || (r.Method == "POST") ) { // Upload fle
       if _, err := os.Stat(filepath.Dir(fullpath+r.URL.Path)); err != nil { 
-        if err := os.MkdirAll(filepath.Dir(fullpath+r.URL.Path),0755); err != nil { returnCode(w,http.StatusInternalServerError); return }
-      }
+        if err := os.MkdirAll(filepath.Dir(fullpath+r.URL.Path),0755); err != nil { returnCode(w,http.StatusInternalServerError) ; return }
+      } 
+      if( strings.HasSuffix(r.URL.Path,"/") ) { returnCode(w,http.StatusCreated) ; return }
       dst, err := os.Create(fullpath+r.URL.Path)
       if err != nil { http.Error(w, err.Error(), http.StatusInternalServerError); return }
       defer dst.Close()
@@ -118,7 +119,7 @@ func main() {
   fullpath,_ :=filepath.Abs(*dir); os.Setenv("ROOTDIR",fullpath)
   commands := strings.Split(*command,",")
   for _, def := range commands {
-    cmd := strings.Split(def,"="); path := cmd[0]; if( !strings.HasPrefix(path,"/") ) { path = "/"+path }; if( !strings.HasSuffix(path,"/") ) { path = path+"/" }
+    cmd := strings.Split(def,"="); path := cmd[0]; if( !strings.HasPrefix(path,"/") ) { path = "/"+path } ; // if( !strings.HasSuffix(path,"/") ) { path = path+"/" }
     if( (len(path)>1) && (len(cmd[1])>0) ) { log.Println("Add dynamic command <"+cmd[1]+"> to "+path+" path"); http.HandleFunc( path, func (w http.ResponseWriter, r *http.Request) { cmdHandler( cmd[1], w, r ) } ) }
   }
   http.HandleFunc("/ping", func (w http.ResponseWriter, r *http.Request) { log.Println( r.Method, r.URL.Path ); w.Write([]byte("pong")) } )
