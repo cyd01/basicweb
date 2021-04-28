@@ -1,7 +1,7 @@
 package main
 //go:generate go-bindata-assetfs wwwroot/get2fa.dev/...
 import (
-  "bufio"; "flag"; "io"; "log"; "net/http"; "path/filepath"; "os"; "os/exec"; "strconv"; "strings"; "time"
+  "bufio"; "context"; "flag"; "io"; "log"; "net/http"; "path/filepath"; "os"; "os/signal"; "os/exec"; "strconv"; "strings"; "syscall"; "time"
 //  assetfs "github.com/elazarl/go-bindata-assetfs"
 )
 var (
@@ -122,8 +122,14 @@ func main() {
     cmd := strings.Split(def,"="); path := cmd[0]; if( !strings.HasPrefix(path,"/") ) { path = "/"+path } ; // if( !strings.HasSuffix(path,"/") ) { path = path+"/" }
     if( (len(path)>1) && (len(cmd[1])>0) ) { log.Println("Add dynamic command <"+cmd[1]+"> to "+path+" path"); http.HandleFunc( path, func (w http.ResponseWriter, r *http.Request) { cmdHandler( cmd[1], w, r ) } ) }
   }
-  http.HandleFunc("/ping", func (w http.ResponseWriter, r *http.Request) { log.Println( r.Method, r.URL.Path ); w.Write([]byte("pong")) } )
-  http.Handle("/", http.HandlerFunc(fileHandler))
+  mux := http.DefaultServeMux
+  mux.HandleFunc("/ping", func (w http.ResponseWriter, r *http.Request) { log.Println( r.Method, r.URL.Path ); w.Write([]byte("pong")) } )
+  mux.Handle("/", http.HandlerFunc(fileHandler))
 //http.Handle("/",http.FileServer(&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo, Prefix: "wwwroot/get2fa.dev"}))
-  log.Fatal(http.ListenAndServe(":"+*port, nil))
+  server := &http.Server{ Addr: ":"+*port, Handler: mux }
+  go func() { server.ListenAndServe() }()
+  quit := make(chan os.Signal); signal.Notify(quit, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGTERM); <-quit
+  ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second); defer cancel()
+  if err := server.Shutdown(ctx); err != nil { log.Fatal("Server forced to shutdown:", err)	}
+  log.Println("Server exiting")
 }
