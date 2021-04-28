@@ -125,7 +125,7 @@ func main() {
   mux := http.DefaultServeMux
   mux.HandleFunc("/ping", func (w http.ResponseWriter, r *http.Request) { log.Println( r.Method, r.URL.Path ); w.Write([]byte("pong")) } )
   mux.Handle("/", http.HandlerFunc(fileHandler))
-//http.Handle("/",http.FileServer(&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo, Prefix: "wwwroot/get2fa.dev"}))
+//mux.Handle("/",http.FileServer(&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo, Prefix: "wwwroot/get2fa.dev"}))
   server := &http.Server{ Addr: ":"+*port, Handler: mux }
   go func() { server.ListenAndServe() }()
   quit := make(chan os.Signal); signal.Notify(quit, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGTERM); <-quit
