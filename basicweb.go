@@ -1,12 +1,13 @@
 package main
 //go:generate go-bindata-assetfs wwwroot/get2fa.dev/...
 import (
-  "bufio"; "context"; "flag"; "io"; "log"; "net/http"; "path/filepath"; "os"; "os/signal"; "os/exec"; "strconv"; "strings"; "syscall"; "time"
+  "bufio"; "context"; "encoding/json"; "flag"; "io"; "io/ioutil"; "log"; "net/http"; "path/filepath"; "os"; "os/signal"; "os/exec"; "strconv"; "strings"; "syscall"; "time"
 //  assetfs "github.com/elazarl/go-bindata-assetfs"
 )
 var (
   command  = flag.String( "cmd"      ,  ""     ,  "external command (/path1/=cmd1,...)"                   )
   dir      = flag.String( "dir"      ,  "."    ,  "root directory"                                        )
+  echo     = flag.Bool  ( "echo"  ,  false     ,  "start echo web server"                                 )
   nocache  = flag.Bool  ( "nocache"  ,  false  ,  "force not to cache"                                    )
   password = flag.String( "pass"     ,  ""     ,  "password for basic authentication (modification only)" )
   port     = flag.String( "port"     ,  "80"   ,  "port web server"                                       )
@@ -113,6 +114,25 @@ func cmdHandler(cmm string, w http.ResponseWriter, r *http.Request) {
   }
   cmd.Wait(); timer.Stop()
 }
+type request struct {
+  URL     string      `json:"url"`
+  Method  string      `json:"method"`
+  Headers http.Header `json:"headers"`
+  Body    []byte      `json:"body"`
+}
+func echoHandler(rw http.ResponseWriter, r *http.Request) {
+  var err error
+  rr := &request{}
+  rr.Method = r.Method
+  rr.Headers = r.Header
+  rr.URL = r.URL.String()
+  rr.Body, err = ioutil.ReadAll(r.Body)
+  if err != nil { http.Error(rw, err.Error(), http.StatusInternalServerError); return }
+  rrb, err := json.Marshal(rr)
+  if err != nil { http.Error(rw, err.Error(), http.StatusInternalServerError); return }
+  rw.Header().Set("Content-Type", "application/json")
+  rw.Write(rrb)
+}
 func main() {
   flag.Parse()
   log.Println("☢ Starting web server with port "+*port+" on directory "+*dir+" with status response "+strconv.Itoa(*status))
@@ -124,7 +144,7 @@ func main() {
   }
   mux := http.DefaultServeMux
   mux.HandleFunc("/ping", func (w http.ResponseWriter, r *http.Request) { log.Println( r.Method, r.URL.Path ); w.Write([]byte("pong")) } )
-  mux.Handle("/", http.HandlerFunc(fileHandler))
+  if( *echo ) {  mux.Handle("/", http.HandlerFunc(echoHandler)) } else { mux.Handle("/", http.HandlerFunc(fileHandler)) }
 //mux.Handle("/",http.FileServer(&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo, Prefix: "wwwroot/get2fa.dev"}))
   server := &http.Server{ Addr: ":"+*port, Handler: mux }
   go func() { server.ListenAndServe() }()
