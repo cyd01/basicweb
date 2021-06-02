@@ -1,5 +1,4 @@
 # basicweb
-[![Go Report Card](https://goreportcard.com/badge/github.com/cyd01/basicweb)](https://goreportcard.com/report/github.com/cyd01/basicweb)
 
 ## Description
 
@@ -17,6 +16,7 @@ Here are the specifications:
 - force status code responses
 - light dynamic scripts managment
 - easy configuration with command-line parameters
+- simple echo server (send the request content into a JSON structure)
 
 ## How to get it
 
@@ -67,8 +67,6 @@ Usage of ./basicweb:
         port web server (default "80")
   -status int
         force return code
-  -timeout int
-        timeout for external command (default 30)
   -user string
         username for basic authentication (modification only)
 ```
@@ -93,4 +91,10 @@ $ docker run --rm -p 8080:80 basicweb
 
 ```bash
 $ ./basicweb -cmd "/cmd/=/bin/bash -c cmd.sh"
+```
+
+## Start echo werver
+
+```bash
+$ ./basicweb -echo
 ```
