@@ -126,6 +126,7 @@ func echoHandler(rw http.ResponseWriter, r *http.Request) {
   rr.Method = r.Method
   rr.Headers = r.Header
   rr.URL = r.URL.String()
+  log.Println( r.Method, r.URL.Path )
   rr.Body, err = ioutil.ReadAll(r.Body)
   if err != nil { http.Error(rw, err.Error(), http.StatusInternalServerError); return }
   rrb, err := json.Marshal(rr)
