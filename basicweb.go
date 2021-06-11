@@ -1,7 +1,7 @@
 package main
 //go:generate go-bindata-assetfs wwwroot/get2fa.dev/...
 import (
-  "bufio"; "context"; "encoding/json"; "flag"; "io"; "io/ioutil"; "log"; "net/http"; "path/filepath"; "os"; "os/signal"; "os/exec"; "strconv"; "strings"; "syscall"; "time"
+  "bufio"; "context"; "encoding/json"; "flag"; "io"; "io/ioutil"; "log"; "net/http"; "net/url"; "path/filepath"; "os"; "os/signal"; "os/exec"; "strconv"; "strings"; "syscall"; "time"
 //  assetfs "github.com/elazarl/go-bindata-assetfs"
 )
 var (
@@ -115,17 +115,21 @@ func cmdHandler(cmm string, w http.ResponseWriter, r *http.Request) {
   cmd.Wait(); timer.Stop()
 }
 type request struct {
-  URL     string      `json:"url"`
-  Method  string      `json:"method"`
-  Headers http.Header `json:"headers"`
-  Body    []byte      `json:"body"`
+  Proto       string      `json:"proto"`
+  Path        string      `json:"path"`
+  Method      string      `json:"method"`
+  Host        string      `json:"host"`
+  Headers     http.Header `json:"headers"`
+  Trailers    http.Header `json:"trailers"`
+  URL         *url.URL    `json:"url"`
+  RemoteAddr  string      `json:"remoteaddr"`
+  Body        []byte      `json:"body"`
 }
 func echoHandler(rw http.ResponseWriter, r *http.Request) {
   var err error
   rr := &request{}
-  rr.Method = r.Method
-  rr.Headers = r.Header
-  rr.URL = r.URL.String()
+  rr.Proto = r.Proto ; rr.Method = r.Method ; rr.Host = r.Host ; rr.Headers = r.Header ; rr.Trailers = r.Trailer
+  rr.URL = r.URL ; rr.RemoteAddr = r.RemoteAddr ; rr.Path = r.URL.String()
   log.Println( r.Method, r.URL.Path )
   rr.Body, err = ioutil.ReadAll(r.Body)
   if err != nil { http.Error(rw, err.Error(), http.StatusInternalServerError); return }
