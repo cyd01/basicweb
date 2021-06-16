@@ -56,19 +56,23 @@ done
 $ ./basicweb -h
 Usage of ./basicweb:
   -cmd string
-        external command (/path1/=cmd1,...)
+    	external command (/path1/=cmd1,...)
   -dir string
-        root directory (default ".")
+    	root directory (default ".")
+  -echo
+    	start echo web server
   -nocache
-        force not to cache
+    	force not to cache
   -pass string
-        password for basic authentication (modification only)
+    	password for basic authentication (modification only)
   -port string
-        port web server (default "80")
+    	port web server (default "80")
   -status int
-        force return code
+    	force return code
+  -timeout int
+    	timeout for external command (default 30)
   -user string
-        username for basic authentication (modification only)
+    	username for basic authentication (modification only)
 ```
 
 ## Lightest start command
