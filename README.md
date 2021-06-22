@@ -10,6 +10,7 @@ Here are the specifications:
 - very light cache management
 - light [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS) management
 - light virtual host management
+- TLS
 - upload files with **POST** or **PUT** HTTP verb
 - remove files with **DELETE** HTTP verb
 - protect against modifications with basic authentication
@@ -71,6 +72,8 @@ Usage of ./basicweb:
     	force return code
   -timeout int
     	timeout for external command (default 30)
+  -tls
+    	active ssl with key.pem and cert.pem files
   -user string
     	username for basic authentication (modification only)
 ```
@@ -102,3 +105,11 @@ $ ./basicweb -cmd "/cmd/=/bin/bash -c cmd.sh"
 ```bash
 $ ./basicweb -echo
 ```
+
+## Start TLS mode
+
+```bash
+$ ./basicweb -tls
+```
+
+> Private key in PEM format must be provided in `key.pem` file, and Certificate in PEM format must be provided in `cert.pem` file
