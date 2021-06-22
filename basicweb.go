@@ -7,8 +7,9 @@ import (
 var (
   command  = flag.String( "cmd"      ,  ""     ,  "external command (/path1/=cmd1,...)"                   )
   dir      = flag.String( "dir"      ,  "."    ,  "root directory"                                        )
-  echo     = flag.Bool  ( "echo"  ,  false     ,  "start echo web server"                                 )
+  echo     = flag.Bool  ( "echo"     ,  false  ,  "start echo web server"                                 )
   nocache  = flag.Bool  ( "nocache"  ,  false  ,  "force not to cache"                                    )
+  tls      = flag.Bool  ( "tls"      ,  false  ,  "active ssl with key.pem and cert.pem files"            )
   password = flag.String( "pass"     ,  ""     ,  "password for basic authentication (modification only)" )
   port     = flag.String( "port"     ,  "80"   ,  "port web server"                                       )
   status   = flag.Int   ( "status"   ,  0      ,  "force return code"                                     )
@@ -152,7 +153,7 @@ func main() {
   if( *echo ) {  mux.Handle("/", http.HandlerFunc(echoHandler)) } else { mux.Handle("/", http.HandlerFunc(fileHandler)) }
 //mux.Handle("/",http.FileServer(&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo, Prefix: "wwwroot/get2fa.dev"}))
   server := &http.Server{ Addr: ":"+*port, Handler: mux }
-  go func() { server.ListenAndServe() }()
+  go func() { if( *tls) { server.ListenAndServeTLS("cert.pem","key.pem") } else { server.ListenAndServe() } }()
   quit := make(chan os.Signal); signal.Notify(quit, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGTERM); <-quit
   ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second); defer cancel()
   if err := server.Shutdown(ctx); err != nil { log.Fatal("Server forced to shutdown:", err)	}
