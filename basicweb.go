@@ -15,6 +15,7 @@ var (
   status   = flag.Int   ( "status"   ,  0      ,  "force return code"                                     )
   timeout  = flag.Int   ( "timeout"  ,  30     ,  "timeout for external command"                          )
   username = flag.String( "user"     ,  ""     ,  "username for basic authentication (modification only)" )
+  headers  = flag.String( "headers"  , ""      ,  "add specific headers (header1=value1[,...])"           )
 )
 func basicAuth(w http.ResponseWriter, r *http.Request) bool {
   if( *username!="" && *password!="" ) {
@@ -43,6 +44,7 @@ func fileHandler(w http.ResponseWriter, r *http.Request) {
   log.Println( r.Method, r.URL.Path )
   if( *nocache ) { setnocache(w) }
   if( (r.Method!="GET")&&(r.Method!="HEAD")&&(r.Method!="OPTIONS") ) { if !basicAuth(w,r) { return } }
+  if( len(*headers)>0 ) { h:=strings.Split(*headers,","); for i:=0;i<len(h);i++ { hh:=strings.Split(h[i],"="); w.Header().Set(strings.TrimSpace(hh[0]),strings.TrimSpace(hh[1])) } }
   if origin := r.Header.Get("Origin"); origin != "" {
     w.Header().Set("Access-Control-Allow-Origin", origin)
     if r.Method == "OPTIONS" {
@@ -94,6 +96,7 @@ func cmdHandler(cmm string, w http.ResponseWriter, r *http.Request) {
   if l,_ := strconv.ParseInt(r.Header.Get("Content-Length"),10,64) ; l>0 { go func() { io.Copy(stdinPipe, r.Body); stdinPipe.Close() }() }
   reader := bufio.NewReader(stdoutPipe)
   setnocache(w)
+  if( len(*headers)>0 ) { h:=strings.Split(*headers,","); for i:=0;i<len(h);i++ { hh:=strings.Split(h[i],"="); w.Header().Set(strings.TrimSpace(hh[0]),strings.TrimSpace(hh[1])) } }
   w.Header().Set("Transfer-Encoding", "chunked"); w.Header().Set("Connection", "Close")
   for { var out string
     if out,err = reader.ReadString('\n'); err!=nil { break }
@@ -137,6 +140,7 @@ func echoHandler(rw http.ResponseWriter, r *http.Request) {
   rrb, err := json.Marshal(rr)
   if err != nil { http.Error(rw, err.Error(), http.StatusInternalServerError); return }
   rw.Header().Set("Content-Type", "application/json")
+  if( len(*headers)>0 ) { h:=strings.Split(*headers,","); for i:=0;i<len(h);i++ { hh:=strings.Split(h[i],"="); rw.Header().Set(strings.TrimSpace(hh[0]),strings.TrimSpace(hh[1])) } }
   rw.Write(rrb)
 }
 func main() {
