@@ -57,25 +57,27 @@ done
 $ ./basicweb -h
 Usage of ./basicweb:
   -cmd string
-    	external command (/path1/=cmd1,...)
+        external command (/path1/=cmd1,...)
   -dir string
-    	root directory (default ".")
+        root directory (default ".")
   -echo
-    	start echo web server
+        start echo web server
+  -headers string
+        add specific headers (header1=value1[,...])
   -nocache
-    	force not to cache
+        force not to cache
   -pass string
-    	password for basic authentication (modification only)
+        password for basic authentication (modification only)
   -port string
-    	port web server (default "80")
+        port web server (default "80")
   -status int
-    	force return code
+        force return code
   -timeout int
-    	timeout for external command (default 30)
+        timeout for external command (default 30)
   -tls
-    	active ssl with key.pem and cert.pem files
+        active ssl with key.pem and cert.pem files
   -user string
-    	username for basic authentication (modification only)
+        username for basic authentication (modification only)
 ```
 
 ## Lightest start command
