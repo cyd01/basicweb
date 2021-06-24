@@ -12,7 +12,7 @@ FROM	busybox as buildimage
 COPY	--from=buildcompress /usr/local/bin/basicweb /tmp/basicweb
 RUN     mkdir -p /usr/local/bin && mv /tmp/basicweb /usr/local/bin/basicweb && chmod +x /usr/local/bin/basicweb && mkdir /www
 
-FROM    buildimage
+FROM    scratch
 COPY --from=buildimage / /
 
 WORKDIR	/www
