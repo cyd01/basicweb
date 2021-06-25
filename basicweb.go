@@ -146,7 +146,8 @@ func echoHandler(rw http.ResponseWriter, r *http.Request) {
 func main() {
   flag.Parse()
   if( !strings.Contains(*port,":") ) { *port = ":"+*port }
-  log.Println("☢ Starting web server on "+*port+" with directory "+*dir+" with status response "+strconv.Itoa(*status))
+  if( *tls ) { log.Println("☢ Starting secure web server") } else { log.Println("☢ Starting web server") }
+  log.Println("on "+*port+" with directory "+*dir+" with status response "+strconv.Itoa(*status))
   fullpath,_ :=filepath.Abs(*dir); os.Setenv("ROOTDIR",fullpath)
   commands := strings.Split(*command,",")
   for _, def := range commands {
@@ -157,7 +158,7 @@ func main() {
   mux.HandleFunc("/ping", func (w http.ResponseWriter, r *http.Request) { log.Println( r.Method, r.URL.Path ); w.Write([]byte("pong")) } )
   if( *echo ) {  mux.Handle("/", http.HandlerFunc(echoHandler)) } else { mux.Handle("/", http.HandlerFunc(fileHandler)) }
 //mux.Handle("/",http.FileServer(&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: AssetInfo, Prefix: "wwwroot/get2fa.dev"}))
-  server := &http.Server{ Addr: ":"+*port, Handler: mux }
+  server := &http.Server{ Addr: *port, Handler: mux }
   go func() { if( *tls) { server.ListenAndServeTLS("cert.pem","key.pem") } else { server.ListenAndServe() } }()
   quit := make(chan os.Signal); signal.Notify(quit, syscall.SIGQUIT, syscall.SIGINT, syscall.SIGTERM); <-quit
   ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second); defer cancel()
