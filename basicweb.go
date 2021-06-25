@@ -145,7 +145,8 @@ func echoHandler(rw http.ResponseWriter, r *http.Request) {
 }
 func main() {
   flag.Parse()
-  log.Println("☢ Starting web server with port "+*port+" on directory "+*dir+" with status response "+strconv.Itoa(*status))
+  if( !strings.Contains(*port,":") ) { *port = ":"+*port }
+  log.Println("☢ Starting web server on "+*port+" with directory "+*dir+" with status response "+strconv.Itoa(*status))
   fullpath,_ :=filepath.Abs(*dir); os.Setenv("ROOTDIR",fullpath)
   commands := strings.Split(*command,",")
   for _, def := range commands {
