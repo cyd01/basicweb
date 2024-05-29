@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ $REQUEST_METHOD == "GET1" ]; then
+if [ $REQUEST_METHOD == "GET" ]; then
   echo "Status: 200"
   echo "Content-type: text/plain"
   echo
@@ -19,7 +19,7 @@ elif [ $REQUEST_METHOD == "GET2" ]; then
     cat web.png
   fi    
 
-elif [ $REQUEST_METHOD == "GET" ]; then
+elif [ $REQUEST_METHOD == "GET3" ]; then
   env | sort
 
 else
